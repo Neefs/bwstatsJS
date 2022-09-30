@@ -87,6 +87,7 @@ bot.on('message', (async (jsonMsg, postion) => {
         return
     } else if (isdm(message)) { 
         const sender = findDmSender(message)
+        console.log(sender)
         if (!sender in authorized_users) return
         if (message.includes(prefix)) {
             const name = message.split(prefix)[1].split(" ")[0]
