@@ -1,6 +1,7 @@
+require("dotenv").config()
 const mineflayer = require("mineflayer")
 const Hypixel = require("hypixel-api-reborn")
-const hypixel = new Hypixel.Client("ddccdbd4-4375-4204-b42b-59bab8c0d8e0")
+const hypixel = new Hypixel.Client(process.env.HYPIXEL_API_KEY)
 
 
 const bot = mineflayer.createBot({
@@ -38,6 +39,26 @@ function isLobbyJoinMessage(message) {
     return (message.endsWith(' the lobby!') || message.endsWith(' the lobby! <<<')) && message.includes('[MVP+')
 }
 
+function isPartyInvite(message) {
+    return (message.includes("has invited you to join their party!\nYou have 60 seconds to accept. Click here to join!\n"))
+}
+
+function getNameFromPartyInvite(message) {
+    message = message.toLowerCase().split("\n")[1].replace("has invited you to join their party!", "").replace("++", "").replace("+", "").replace("[", "").replace("]", "")
+    for (var rank = 0; rank<ranks.length; rank++) {
+        message = message.replace(ranks[rank], "")
+    }
+    return message.trim()
+}
+
+function sleepFor(sleepDuration){
+    var now = new Date().getTime();
+    while(new Date().getTime() < now + sleepDuration){ 
+        /* Do nothing */ 
+    }
+}
+
+
 
 
 bot.once('spawn', () => {
@@ -74,6 +95,14 @@ bot.on('message', ((jsonMsg, position) => {
             console.log(command)
             bot.chat(`/${command}`)
         }
+    } else if (isPartyInvite(message)) {
+        const sender = getNameFromPartyInvite(message)
+        if (!sender in authorized_users) return
+        bot.chat(`/p accept ${sender}`)
+        sleepFor(1000)
+        bot.chat("/pc party coming soon need to get list of players ")
+        sleepFor(1000)
+        bot.chat("/p leave")
     }
 
 }))
