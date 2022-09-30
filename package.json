@@ -1,0 +1,15 @@
+{
+  "name": "bwstatsjs",
+  "version": "1.0.0",
+  "description": "An ingame minecraft bot that displays players stats to users.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "hypixel-api-reborn": "^10.0.0",
+    "mineflayer": "^4.4.0"
+  }
+}
