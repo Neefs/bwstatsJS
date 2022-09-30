@@ -45,6 +45,7 @@ function isPartyInvite(message) {
     return (message.includes("has invited you to join their party!\nYou have 60 seconds to accept. Click here to join!\n"))
 }
 
+
 function getNameFromPartyInvite(message) {
     message = message.toLowerCase().split("\n")[1].replace("has invited you to join their party!", "").replace("++", "").replace("+", "").replace("[", "").replace("]", "")
     for (var rank = 0; rank<ranks.length; rank++) {
@@ -110,6 +111,11 @@ bot.on('message', (async (jsonMsg, postion) => {
             }
             
         }
+    } else if (isPartyInvite(message)) {
+        const sender = getNameFromPartyInvite(message)
+        await bot.chat(`/p accept ${sender}`)
+        await bot.waitForTicks(20)
+        await bot.chat("/p list")
     }
 }))
 
