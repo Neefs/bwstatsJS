@@ -3,6 +3,7 @@ const mineflayer = require("mineflayer")
 const Hypixel = require("hypixel-api-reborn")
 const hypixel = new Hypixel.Client(process.env.HYPIXEL_API_KEY)
 
+//TODO: AWAIT EVERYTHING
 
 const bot = mineflayer.createBot({
     host: "hypixel.net",
@@ -51,21 +52,15 @@ function getNameFromPartyInvite(message) {
     return message.trim()
 }
 
-function sleepFor(sleepDuration){
-    var now = new Date().getTime();
-    while(new Date().getTime() < now + sleepDuration){ 
-        /* Do nothing */ 
-    }
-}
 
 
 
 
-bot.once('spawn', () => {
-    bot.chat("\u00a7")
+bot.once('spawn', async () => {
+    await bot.chat("\u00a7")
 })
 
-bot.on('message', ((jsonMsg, position) => {
+bot.on('message', (async (jsonMsg, position) => {
     const message = jsonMsg.toString().trim()
     console.log(`CHATMESSAGE: ${jsonMsg}`)
     if (isdm(message)) {
@@ -99,9 +94,9 @@ bot.on('message', ((jsonMsg, position) => {
         const sender = getNameFromPartyInvite(message)
         if (!sender in authorized_users) return
         bot.chat(`/p accept ${sender}`)
-        sleepFor(1000)
+        await bot.waitForTicks(20)
         bot.chat("/pc party coming soon need to get list of players ")
-        sleepFor(1000)
+        await bot.waitForTicks(20)
         bot.chat("/p leave")
     }
 
