@@ -69,35 +69,35 @@ bot.on('message', (async (jsonMsg, position) => {
         if (!sender in authorized_users) return
         if (message.includes(prefix)) {
             const name = message.split(".")[1].split(" ")[0]
-            hypixel.getPlayer(name).then(player => {
+            hypixel.getPlayer(name).then(async player => {
                 const bedwarsStats = player.stats.bedwars
-                bot.whisper(sender, `[${bedwarsStats.level}★] ${player.nickname} FKDR: ${bedwarsStats.finalKDRatio} WLR: ${bedwarsStats.WLRatio} BBLR: ${bedwarsStats.beds.BLRatio}`)
+                await bot.whisper(sender, `[${bedwarsStats.level}★] ${player.nickname} FKDR: ${bedwarsStats.finalKDRatio} WLR: ${bedwarsStats.WLRatio} BBLR: ${bedwarsStats.beds.BLRatio}`)
                 return
-            }).catch(e => {
+            }).catch(async e => {
                 if (e.message === Hypixel.Errors.PLAYER_DOES_NOT_EXIST) {
-                    bot.whisper(sender, "This is not a valid minecraft account.")
+                    await bot.whisper(sender, "This is not a valid minecraft account.")
                     return
                 } else if (e.name === "TypeError") {
-                    bot.whisper(sender, "Could not find stats for that player.")
+                    await bot.whisper(sender, "Could not find stats for that player.")
                     return
                 }
                 console.log(e)
-                bot.whisper(sender, "An error has occoured")
+                await bot.whisper(sender, "An error has occoured")
             })
         } else if (message.includes("sc")) {
             console.log("sda")
             const command = message.split('sc')[1].trim().replace("/", "")
             console.log(command)
-            bot.chat(`/${command}`)
+            await bot.chat(`/${command}`)
         }
     } else if (isPartyInvite(message)) {
         const sender = getNameFromPartyInvite(message)
         if (!sender in authorized_users) return
-        bot.chat(`/p accept ${sender}`)
+        await bot.chat(`/p accept ${sender}`)
         await bot.waitForTicks(20)
-        bot.chat("/pc party coming soon need to get list of players ")
+        await bot.chat("/pc party coming soon need to get list of players ")
         await bot.waitForTicks(20)
-        bot.chat("/p leave")
+        await bot.chat("/p leave")
     }
 
 }))
