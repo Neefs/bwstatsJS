@@ -1,19 +1,21 @@
 require("dotenv").config()
 const mineflayer = require("mineflayer")
 const axios = require('axios')
-const { Client } = require("@zikeji/hypixel")
+const { Client, getBedwarsLevelInfo, getSkyWarsLevelInfo } = require("@zikeji/hypixel")
 const client = new Client(process.env.HYPIXEL_API_KEY)
 
 //TODO: AWAIT EVERYTHING
 
-const bot = mineflayer.createBot({
+const botoptions = {
     host: "hypixel.net",
     version: "1.8.9",
     username: "HangSean",
     auth: "microsoft"
-})
+}
 
-const authorized_users = ["ezbedwars", "subtotals", "ohyami"]
+//const bot = mineflayer.createBot(botoptions)
+
+const authorized_users = ["ezbedwars", "subtotals", "ohyami", "hangseans"]
 const prefix = '.'
 const ranks = ["mvp", "vip", "youtube"]
 
@@ -72,115 +74,138 @@ async function getUuid(playerName) {
     
 }
 
+const initbot = () => {
 
+    let bot = mineflayer.createBot(botoptions)
 
+    bot.on('end', () => {
+        console.log("Disconnected")
 
+        setTimeout(initbot, 5000)
+    })
 
-bot.once('spawn', async () => {
-    await bot.chat("\u00a7")
-})
+    bot.on('error', (err) => {
+        if (err.code === "ECONNRESET"){
+            console.log("Bro wifi went out again")
+            return
+        } else {
+            console.error(`Unhandled error: ${err}`)
+            return
+        }
+    })
 
-bot.on('message', (async (jsonMsg, postion) => {
-    const message = jsonMsg.toString().trim()
-    console.log(`CHATMESSAGE: ${message}`)
-    if (isLobbyJoinMessage(message)) {
+    bot.once('spawn', async () => {
         await bot.chat("\u00a7")
-        return
-    } else if (isdm(message)) { 
-        const sender = findDmSender(message)
-        console.log(sender)
-        if (!sender in authorized_users) return
-        if (message.includes(prefix)) {
-            const name = message.split(prefix)[1].split(" ")[0]
-            const uuid = await getUuid(name)
-            .catch(async e => {
-                if (e.message === "Player not found."){
-                    await bot.whisper(sender, "Player not found.")
-                    return
-                } else {
-                    console.error(e)
-                    await bot.whisper(sender, "An error has occured")
+    })
+    
+    bot.on('message', (async (jsonMsg, postion) => {
+        const message = jsonMsg.toString().trim()
+        console.log(`CHATMESSAGE: ${message}`)
+        if (isLobbyJoinMessage(message)) {
+            await bot.chat("\u00a7")
+            return
+        } else if (isdm(message)) { 
+            const sender = findDmSender(message)
+            console.log(sender)
+            if (!sender in authorized_users) return
+            if (message.includes(prefix)) {
+                const name = message.split(prefix)[1].split(" ")[0]
+                const uuid = await getUuid(name)
+                .catch(async e => {
+                    if (e.message === "Player not found."){
+                        await bot.whisper(sender, "Player not found.")
+                        return
+                    } else {
+                        console.error(e)
+                        await bot.whisper(sender, "An error has occured")
+                        return
+                    }
+                })
+                if (!uuid) return
+                const player = await client.player.uuid(uuid)
+                if (isEmpty(player)){
+                    await bot.whisper(sender, "Player has never logged into hypixel.")
                     return
                 }
-            })
-            if (!uuid) return
-            const player = await client.player.uuid(uuid)
-            if (isEmpty(player)){
-                await bot.whisper(sender, "Player has never logged into hypixel.")
-                return
+                const args = message.split(name)[1].toLowerCase().trim().split(" ")
+                const available_args = ["bw", "bedwars", "sw", "skywars"]
+                if (!available_args.includes(args[0])) {args[0] = ""}
+                if (args[0] === "bw" || args[0] === "bedwars" || args[0] === "") {
+                    try {
+                        const bedwarsLevelInfo = getBedwarsLevelInfo(player)
+                        const bedwarsStats = player.stats.Bedwars
+                        let fkdr, wlr, bblr
+                        if (bedwarsStats.final_deaths_bedwars === 0) {
+                            fkdr = bedwarsStats.final_kills_bedwars
+                        }else {
+                            fkdr = Math.round((bedwarsStats.final_kills_bedwars / bedwarsStats.final_deaths_bedwars) * 100) / 100
+                        }
+                        if (bedwarsStats.losses_bedwars === 0) {
+                            wlr = bedwarsStats.wins_bedwars
+                        }else {
+                            wlr = Math.round((bedwarsStats.wins_bedwars / bedwarsStats.losses_bedwars) * 100) / 100
+                        }
+                        if (bedwarsStats.beds_lost_bedwars === 0) {
+                            bblr = bedwarsStats.beds_broken_bedwars
+                        }else {
+                            bblr = Math.round((bedwarsStats.beds_broken_bedwars / bedwarsStats.beds_lost_bedwars) * 100) / 100
+                        }
+                        await bot.whisper(sender, `\n[${bedwarsLevelInfo.level}★] ${player.displayname} FKDR: ${fkdr} WLR: ${wlr} BBLR: ${bblr}`)
+                        return
+                    } catch(error) {
+                        if(error.name == "TypeError") {
+                            await bot.whisper(sender, "Could not find bedwars info for that user.")
+                            return
+                        } else {
+                            await bot.whisper(sender, "An error has occured")
+                            console.error(error)
+                            return
+                        }
+                    }
+                }else if (args[0] === "sw" || args[0] === "skywars") {
+                    try {
+                        const skywarsLevelInfo = getSkyWarsLevelInfo(player)
+                        const skywarsStats = player.stats.SkyWars
+                        let kdr, wlr
+                        if (skywarsStats.losses === 0) {
+                            wlr = skywarsStats.wins
+                        } else {
+                            wlr = Math.round((skywarsStats.wins / skywarsStats.losses) * 100) / 100
+                        }
+                        if (skywarsStats.deaths === 0) {
+                            kdr = skywarsStats.kills
+                        } else {
+                            kdr = Math.round((skywarsStats.kills / skywarsStats.deaths) * 100) / 100
+                        }
+                        await bot.whisper(sender, `\n[${skywarsLevelInfo.level}★] ${player.displayname} KDR: ${kdr} WLR: ${wlr}`)
+    
+                    } catch (error) {
+                        if(error.name == "TypeError") {
+                            await bot.whisper(sender, "Could not find bedwars info for that user.")
+                            return
+                        } else {
+                            await bot.whisper(sender, "An error has occured")
+                            console.error(error)
+                            return
+                        }
+                    }
+                }
+    
+                
             }
-            
+        } else if (isPartyInvite(message)) {
+            const sender = getNameFromPartyInvite(message)
+            await bot.chat(`/p accept ${sender}`)
+            await bot.waitForTicks(20)
+            await bot.chat("/pc COMING SOON")
+            await bot.waitForTicks(20)
+            await bot.chat("/p leave")
         }
-    } else if (isPartyInvite(message)) {
-        const sender = getNameFromPartyInvite(message)
-        await bot.chat(`/p accept ${sender}`)
-        await bot.waitForTicks(20)
-        await bot.chat("/p list")
-    }
-}))
+    }))
+    
+}
 
-// bot.on('message', (async (jsonMsg, position) => {
-//     const message = jsonMsg.toString().trim()
-//     console.log(`CHATMESSAGE: ${jsonMsg}`)
-//     if (isdm(message)) {
-//         const sender = findDmSender(message)
-//         console.log(sender)
-//         if (!sender in authorized_users) return
-//         if (message.includes(prefix)) {
-//             const name = message.split(".")[1].split(" ")[0]
-//             hypixel.getPlayer(name).then(player => {
-//                 const bedwarsStats = player.stats.bedwars
-//                 bot.whisper(sender, `[${bedwarsStats.level}★] ${player.nickname} FKDR: ${bedwarsStats.finalKDRatio} WLR: ${bedwarsStats.WLRatio} BBLR: ${bedwarsStats.beds.BLRatio}`)
-//                 return
-//             }).catch(e => {
-//                 if (e.message === Hypixel.Errors.PLAYER_DOES_NOT_EXIST) {
-//                     bot.whisper(sender, "This is not a valid minecraft account.")
-//                     return
-//                 } else if (e.name === "TypeError") {
-//                     bot.whisper(sender, "Could not find stats for that player.")
-//                     return
-//                 }
-//                 console.log(e)
-//                 bot.whisper(sender, "An error has occoured")
-//             })
-//         } else if (message.includes("sc")) {
-//             console.log("sda")
-//             const command = message.split('sc')[1].trim().replace("/", "")
-//             console.log(command)
-//             bot.chat(`/${command}`)
-//         }
-//     } else if (isPartyInvite(message)) {
-//         const sender = getNameFromPartyInvite(message)
-//         if (!sender in authorized_users) return
-//         bot.chat(`/p accept ${sender}`)
-//         await bot.waitForTicks(20)
-//         bot.chat("/pc party coming soon need to get list of players ")
-//         await bot.waitForTicks(20)
-//         bot.chat("/p leave")
-//     }
+initbot()
 
-// }))
 
-// bot.on('whisper', (username, message, translate, jsonMsg, matches) => {
-//     console.log("whispewrhappened")
-//     if (!username in authorized_users) return
-//     if (message.startsWith(prefix)) {
-//         message = message.replace(prefix, '')
-//         hypixel.getPlayer(message.split(" ")[0]).then(player => {
-//             const bedwarsStats = player.stats.bedwars
-//             bot.whisper(username, `[${bedwarsStats.level}★] ${player.nickname} FKDR: ${bedwarsStats.finalKDRatio} WLR: ${bedwarsStats.WLRatio} BBLR: ${bedwarsStats.beds.BLRatio}`)
-//             return
-//         }).catch(e => {
-//             if (e.message === Hypixel.Errors.PLAYER_DOES_NOT_EXIST) {
-//                 bot.whisper(username, "player not found")
-//                 return
-//             } else if (e.name === "TypeError") {
-//                 bot.whisper(username, "Stats not found for that player.")
-//                 return
-//             }
-//             bot.whisper(username, "there was an error")
-//             console.error(e)
-//         })
 
-//     }
-// })
